@@ -1,7 +1,3 @@
-// ****************************************** //
-// DO NOT change or add any code in this file //
-// ****************************************** //
-
 let net = require('net'),
     singleton = require('./Singleton'),
     handler = require('./ClientsHandler');

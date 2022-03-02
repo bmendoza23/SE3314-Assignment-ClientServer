@@ -1,12 +1,48 @@
+const res = require("express/lib/response");
 
-// You may need to add some declaration here
+//Declaring variables
+const HEADER_SIZE = 12; 
+
+var ver, responseType, sequenceNumber, timeStamp, imgSize;  //Variables to make up bitstream header
 
 module.exports = {
+    bitstreamLength: 0, //ITP Bistream Length
+    bitstream: '',      //Content of bitstream
+    resHeader: '',      //Content of ITP response header
 
-    init: function () { // feel free to add function parameters as needed
-        //
-        // enter your code here
-        //
+    init: function (resType, seqNumber, tStamp, data, dataSize) {
+        ver = 7;  //Version 7
+        //Setting variables
+        responseType = resType;
+        sequenceNumber = seqNumber;
+        timeStamp = tStamp;
+        imgSize = dataSize;
+
+        //Populating header
+        this.resHeader = new Buffer.alloc(HEADER_SIZE);
+
+        //storeBitPacket used to put information to correct location at buffer
+        storeBitPacket(this.resHeader, v, 0, 4);                //Version                
+        storeBitPacket(this.resHeader, responseType, 4, 8);     //Response type
+        storeBitPacket(this.resHeader, sequenceNumber, 12, 20); //Sequence number
+        storeBitPacket(this.resHeader, timeStamp, 32, 32);      //Timestamp
+        storeBitPacket(this.resHeader, imgSize, 64, 32);
+
+        //Filling bitstream with header bits
+        this.bitstreamLength = dataSize;
+        this.bitstream = new Buffer.alloc(dataSize);
+
+        if (resType == 1){
+            //Loop fills payload with image data
+            for (var i = 0; i < dataSize; i++){
+                this.bitstream[i] = data[i];
+            }
+        } else if (resType == 2){
+            //Fill bitstream with empty bits
+            for (var i = 0; i < dataSize; i++){
+                this.bitstream[i] = 0;
+            }
+        }
 
     },
 
@@ -14,13 +50,22 @@ module.exports = {
     //getpacket: returns the entire packet
     //--------------------------
     getPacket: function () {
-        // enter your code here
-        return "this should be a correct packet";
+        //Declaring packet using buffer of length of bitstream + header size
+        let packet = new Buffer.alloc(this.bitstreamLength + HEADER_SIZE);
+        
+        //Adding header to packet
+        for (let i = 0; i < HEADER_SIZE; i++){
+            packet[i] = this.resHeader[i];
+        }
+        //Adding bistream to packet
+        for (let j = 0; j <this.bitstreamLength; j++)
+        {
+            packet[j + HEADER_SIZE] = this.bitstream[j];
+        }
+
+        return packet;
     }
 };
-
-//// Some usefull methods ////
-// Feel free to use them, but DON NOT change or add any code in these methods.
 
 // Store integer value into specific bit poistion the packet
 function storeBitPacket(packet, value, offset, length) {
