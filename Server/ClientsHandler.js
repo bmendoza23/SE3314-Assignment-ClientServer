@@ -68,7 +68,7 @@ function logClientPacketInfo(data, sock){
     console.log(
         '\n' + clientIDs[sock.id] + ' requests:' +
         '\n    --ITP Version: ' + v +
-        '\n    --Timestamp: ' + timestamp +
+        '\n    --Timestamp: ' + timeStamp +
         '\n    --Request Type: ' + requestType +
         '\n    --Image File Extension(s) ' + fileExt +
         '\n    --Image File Name: ' + fileName
