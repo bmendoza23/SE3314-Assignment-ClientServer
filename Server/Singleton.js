@@ -30,8 +30,8 @@ module.exports = {
     //getSequenceNumber: return the current sequence number + 1
     //--------------------------
     getSequenceNumber: function() {
-        seqNumber++;
-        return seqNumber;
+        seqNumber++;        //Increment seq number
+        return seqNumber;   
     },
 
     //--------------------------

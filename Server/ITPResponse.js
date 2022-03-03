@@ -27,17 +27,23 @@ module.exports = {
         storeBitPacket(this.resHeader, sequenceNumber, 12, 20); //Sequence number
         storeBitPacket(this.resHeader, timeStamp, 32, 32);      //Timestamp
         storeBitPacket(this.resHeader, imgSize, 64, 32);        //Image Size
- 
-        this.bitstreamLength = dataSize;                //Setting bitstream length to the data size
-        this.bitstream = new Buffer.alloc(dataSize);    //creating new buffer for the bitstream payload
+        
+        //Setting bitstream length to the data size
+        this.bitstreamLength = dataSize;                
+       
+        //Creating new buffer for the bitstream payload
+        this.bitstream = new Buffer.alloc(dataSize);   
 
+        //Response type logic
         switch (resType){
+            //Found
             case 1:
                 //Loop fills payload with image data
                 for (var i = 0; i < dataSize; i++){
                     this.bitstream[i] = data[i];
                 }
                 break;
+            //Not found
             case 2:
                  //Fill bitstream with empty bits
                 for (var i = 0; i < dataSize; i++){

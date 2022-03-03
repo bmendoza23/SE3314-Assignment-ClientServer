@@ -1,28 +1,29 @@
 let net = require("net");
-let fs = require("fs");
-let open = require("open");
-let ITPpacket = require("./ITPRequest");
+let fs = require("fs");     // To access file system
+let open = require("open"); // To open files
 
-//Connection info parsed from 3rd argument
-let connInfo = process.argv[3].split(':');
-//File name parsed from 5th argument
-let fileName = process.argv[5].split('.');
-let ver  = Number(process.argv[7]);
-console.log(ver);
+let ITPrequest = require("./ITPRequest");
+
+//Parsing data out of entered argument
 
 //Connection Info
+let connInfo = process.argv[3].split(':');  //Connection info parsed from 3rd argument, splits at :
 let host    = connInfo[0];
 let port    = connInfo[1];
 
 //File Info
+let fileName = process.argv[5].split('.');  //File name parsed from 5th argument, splits at .
 let fName   = fileName[0];
 let fType   = fileName[1];
+
+//Version number
+let ver  = Number(process.argv[7]);         //Takes version number at 7th argument
 
 //Request type is query
 let reqType = 0;
 
-//Initializing ITP packet with the file info
-ITPpacket.init(ver, reqType, fType, fName);
+//Initializing ITP packet with the frequest and file info
+ITPrequest.init(ver, reqType, fType, fName);
 
 //New socket for client
 let client = new net.Socket();
@@ -32,46 +33,32 @@ client.connect(port, host, function(){
   //Logging connection 
   console.log('Connected to ImageDB Server on: ' + host +':'+port);
   //Sending packet through client socket
-  client.write(ITPpacket.getBytePacket());   
+  client.write(ITPrequest.getBytePacket()); 
+  //Logging that request was sent.  
   console.log('Request sent.');
 })
 
+/*
+  Handling receiving information from server
+*/
 const fileParts = []; //Constant array for file partitions
 //Pushing partitions of bitstream received into fileParts array
-client.on('data', partition => fileParts.push(partition));
+client.on('data', part => 
+  fileParts.push(part)
+);
 
 //End
 client.on('end', () =>{
+  //Concatonating partitions into the response packet
   const responsePacket = Buffer.concat(fileParts);
-  let header = responsePacket.slice(0,12);
-  let resType = parseBitPacket(responsePacket, 4, 8);
-  let file = responsePacket.slice(12);
-  
-  //Response type = Found
-  if (resType == 1){
-    //Sending file name to fs for open
-    fs.writeFile(process.argv[5], file, 'binary', function(err, wr){
-      //No error thrown
-      if(!err){
-        //Opens file
-        open(process.argv[5]);
-      }
-      //Error thrown
-      else{
-        //Logs error
-        console.log(err)
-      }
-    });
-  }
-  else {
-    console.log("Image not in server");
-  }
+  let header  = responsePacket.slice(0,12); //Taking header out of the response
+  let file    = responsePacket.slice(12);   //Parsing file info from bit data past 12th byte
 
   //Parsing response packet into version, response type, sequence number, timestamp
-  let version = parseBitPacket(responsePacket, 0, 4);
+  let version         = parseBitPacket(responsePacket, 0, 4);
   let responseTypeNum = parseBitPacket(responsePacket, 4, 8);
-  let sequenceNumber = parseBitPacket(responsePacket, 12, 20);
-  let timeStamp = parseBitPacket(responsePacket, 32, 32);
+  let sequenceNumber  = parseBitPacket(responsePacket, 12, 20);
+  let timeStamp       = parseBitPacket(responsePacket, 32, 32);
 
   //Converting response type number to a string
   let responseType;
@@ -101,17 +88,33 @@ client.on('end', () =>{
             --Sequence number = ${sequenceNumber}
             --Timestamp       = ${timeStamp}`
     )
+  
+    //Response type = Found
+    if (responseTypeNum == 1){
+      //Sending file name to fs for open
+      fs.writeFile(process.argv[5], file, 'binary', function(err, wr){
+        //No error thrown
+        if(!err){
+          //Opens file
+          open(process.argv[5]);
+        }
+        //Error thrown
+        else{
+          //Logs error
+          console.log(err)
+        }
+      });
+    }
+    else {
+      console.log("Image was not found in server.");
+    }
+
     client.end();
 });
 
 //Handles socket close
 client.on('close', function(){
   console.log('Connection terminated.');
-});
-
-//Handles socket connection end
-client.on('end', function(){
-  console.log('Server disconnected.');
 });
 
 // Returns the integer value of the extracted bits fragment for a given packet

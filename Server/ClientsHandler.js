@@ -33,9 +33,9 @@ function recClientPacketInfo(data, sock){
     let reqTypeRec          = parseBitPacket(data, 24, 8);      //Request type
     let timeStamp           = parseBitPacket(data, 32, 32);     //Time Stamp
     let fileExtRec          = parseBitPacket(data, 64, 4);      //File extension
-    let fileName            = bytesToString(data.slice(12));               //data from packet sliced
+    let fileName            = bytesToString(data.slice(12));    //data from packet sliced
 
-    //Converting request type
+    //Logic for converting request type to string
     let requestType;
     switch(reqTypeRec){
       case 0:
@@ -52,7 +52,7 @@ function recClientPacketInfo(data, sock){
         break;
     }
 
-    //Convert file extension 
+    //Logic for converting file extension to string
     let fileExt;
     switch (fileExtRec){
         case 1:
@@ -90,17 +90,18 @@ function recClientPacketInfo(data, sock){
 
     //Getting requested file
     fs.readFile('images/' + fileName + '.' + fileExt.toLowerCase(), (err, data) => {
+        //Array for file partition
         const fileParts = [];
         //Error thrown
         if (err){
-            //Responding to error, creating empty packet with response type 2
+            //Responding to error, creating empty packet with response type 2 (not found)
             ITPpacket.init(2, singleton.getSequenceNumber(), singleton.getTimestamp(), 0, 0);
             //Sending ITP packet to the socket
             sock.write(ITPpacket.getPacket());
             //Closing connection
             sock.end();
             //Logging error to console 
-            console.log('\n ERROR: File not found.');
+            console.log('\n ERROR: File not found.' + '\n' + err);
         }
         //No Error thrown
         else {
@@ -109,7 +110,7 @@ function recClientPacketInfo(data, sock){
 
             //Putting file partitions into array
             readFile.on('data', function (parts){
-                fileParts.push(parts);      //pushing file partitions into fileParts
+                fileParts.push(parts); //pushing file partitions into fileParts
             });
             //Finalizing packet
             readFile.on('close', function(){
@@ -126,7 +127,7 @@ function recClientPacketInfo(data, sock){
     })
 }
 
-//Assigns ID to aclients
+//Assigns ID to clients
 function setClientID(sock, clientList){
     //Creating ID for the socket
     sock.id = sock.remAddress + ":" + sock.remPort;
@@ -138,7 +139,6 @@ function setClientID(sock, clientList){
     var name = 'client-' + startTime[sock.id];  //Sets local variable name
     clientList[sock.id] = name;                  //Stores name in the client names array
     clientAddress[sock.id] = sock.remAddress;   //Stores socket address in clientAddress array
-
 }
 
 // Returns the integer value of the extracted bits fragment for a given packet

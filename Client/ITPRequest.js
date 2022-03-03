@@ -13,10 +13,10 @@ module.exports = {
     version = v;
 
     //Setting variables
-    requestType = reqType;
-    timeStamp = 0;
-    imgExt = fType;
-    fileName = fName;
+    requestType = reqType;  //Request type
+    timeStamp = 0;          //Timestamp
+    imgExt = fType;         //File extension
+    fileName = fName;       //File name
 
     let fileNameBytes = stringToBytes(fileName); //Converting file name to bytes
     this.bitstreamLength = fileNameBytes.length; //Getting length of file name
@@ -46,6 +46,8 @@ module.exports = {
     
     //Creating a buffer for the request header of the length of the header size
     this.requestHeader = new Buffer.alloc(HEADER_SIZE);
+
+    //Storing bitpackets in request header
     storeBitPacket(this.requestHeader, version, 0 , 4);               //Version
     storeBitPacket(this.requestHeader, reqType, 24, 8);               //Request type
     storeBitPacket(this.requestHeader, timeStamp, 32, 32);            //Timestamp
@@ -57,6 +59,7 @@ module.exports = {
 
     //Loops over length of filename string, copied filename string to bitstream
     for(var i = 0; i < fileNameBytes.length; i++){
+      //Copying file name to bitstream
       this.bitstream[i] = fileNameBytes[i];
     }
   },
@@ -67,10 +70,14 @@ module.exports = {
   getBytePacket: function () {
     let packet = new Buffer.alloc(this.bitstreamLength + HEADER_SIZE);
     
+    //Loops over header size
     for(let i = 0; i < HEADER_SIZE; i++){
+      //Adds header to packet
       packet[i] = this.requestHeader[i];
     }
+    //Loops over bitstream length
     for(let j = 0; j < this.bitstreamLength; j++){
+      //Adds bitstream to packet after the header
       packet[j + HEADER_SIZE] = this.bitstream[j];
     } 
     return packet;
