@@ -18,32 +18,32 @@ module.exports = {
         timeStamp = tStamp;
         imgSize = dataSize;
 
-        //Populating header
+        //Initializing buffer for header
         this.resHeader = new Buffer.alloc(HEADER_SIZE);
 
         //storeBitPacket used to put information to correct location at buffer
-        storeBitPacket(this.resHeader, ver, 0, 4);                //Version                
+        storeBitPacket(this.resHeader, ver, 0, 4);              //Version                
         storeBitPacket(this.resHeader, responseType, 4, 8);     //Response type
         storeBitPacket(this.resHeader, sequenceNumber, 12, 20); //Sequence number
         storeBitPacket(this.resHeader, timeStamp, 32, 32);      //Timestamp
-        storeBitPacket(this.resHeader, imgSize, 64, 32);
+        storeBitPacket(this.resHeader, imgSize, 64, 32);        //Image Size
+ 
+        this.bitstreamLength = dataSize;                //Setting bitstream length to the data size
+        this.bitstream = new Buffer.alloc(dataSize);    //creating new buffer for the bitstream payload
 
-        //Filling bitstream with header bits
-        this.bitstreamLength = dataSize;
-        this.bitstream = new Buffer.alloc(dataSize);
-
-        if (resType == 1){
-            //Loop fills payload with image data
-            for (var i = 0; i < dataSize; i++){
-                this.bitstream[i] = data[i];
-            }
-        } else if (resType == 2){
-            //Fill bitstream with empty bits
-            for (var i = 0; i < dataSize; i++){
+        switch (resType){
+            case 1:
+                //Loop fills payload with image data
+                for (var i = 0; i < dataSize; i++){
+                    this.bitstream[i] = data[i];
+                }
+                break;
+            case 2:
+                 //Fill bitstream with empty bits
+                for (var i = 0; i < dataSize; i++){
                 this.bitstream[i] = 0;
             }
         }
-
     },
 
     //--------------------------

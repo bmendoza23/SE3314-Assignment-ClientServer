@@ -3,9 +3,12 @@ let fs = require("fs");
 let open = require("open");
 let ITPpacket = require("./ITPRequest");
 
-//Variable Declaration for file name info and connection info
+//Connection info parsed from 3rd argument
 let connInfo = process.argv[3].split(':');
+//File name parsed from 5th argument
 let fileName = process.argv[5].split('.');
+let ver  = Number(process.argv[7]);
+console.log(ver);
 
 //Connection Info
 let host    = connInfo[0];
@@ -15,13 +18,13 @@ let port    = connInfo[1];
 let fName   = fileName[0];
 let fType   = fileName[1];
 
-//Request Info
+//Request type is query
 let reqType = 0;
 
 //Initializing ITP packet with the file info
-ITPpacket.init(reqType, fType, fName);
+ITPpacket.init(ver, reqType, fType, fName);
 
-//Create socket connection
+//New socket for client
 let client = new net.Socket();
 
 //Connection to server
@@ -41,15 +44,21 @@ client.on('data', partition => fileParts.push(partition));
 client.on('end', () =>{
   const responsePacket = Buffer.concat(fileParts);
   let header = responsePacket.slice(0,12);
-  let file = responsePacket.slice(12);
   let resType = parseBitPacket(responsePacket, 4, 8);
-
+  let file = responsePacket.slice(12);
+  
+  //Response type = Found
   if (resType == 1){
+    //Sending file name to fs for open
     fs.writeFile(process.argv[5], file, 'binary', function(err, wr){
+      //No error thrown
       if(!err){
+        //Opens file
         open(process.argv[5]);
       }
+      //Error thrown
       else{
+        //Logs error
         console.log(err)
       }
     });
@@ -66,17 +75,19 @@ client.on('end', () =>{
 
   //Converting response type number to a string
   let responseType;
-    if(responseTypeNum == 0){
-      responseType = 'Query';
-    }
-    else if(responseTypeNum == 1){
-      responseType = 'Found';
-    }
-    else if(responseTypeNum == 2){
-      responseType = 'Not Found';
-    }
-    else if(responseTypeNum == 3){
-      responseType = 'Busy';
+    switch(responseTypeNum){
+      case 0:
+        responseType = 'Query';
+        break;
+      case 1:
+        responseType = 'Found';
+        break;
+      case 2:
+        responseType = 'Not Found';
+        break;
+      case 3:
+        responseType = 'Busy';
+        break;
     }
 
     //Print header info
@@ -85,18 +96,20 @@ client.on('end', () =>{
     //Logging response info
     console.log(
       'Server sent: ' + 
-      '\n     --ITP version = ' + version +
-      '\n     --Response Type = ' + responseType +
+      '\n     --ITP version = '     + version +
+      '\n    --Response Type = '    + responseType +
       '\n     --Sequence number = ' + sequenceNumber +
-      '\n     --Timestamp = ' + timeStamp 
+      '\n     --Timestamp = '       + timeStamp 
     )
     client.end();
 });
 
+//Handles socket close
 client.on('close', function(){
   console.log('Connection terminated.');
 });
 
+//Handles socket connection end
 client.on('end', function(){
   console.log('Server disconnected.');
 });

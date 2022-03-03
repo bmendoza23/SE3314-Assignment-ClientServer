@@ -9,8 +9,8 @@ module.exports = {
   bitstream: '',        //Bitstream
   requestHeader: '',    //ITP Request header
 
-  init: function (reqType, fType, fName) {
-    version = 7;
+  init: function (v, reqType, fType, fName) {
+    version = v;
 
     //Setting variables
     requestType = reqType;
@@ -18,47 +18,47 @@ module.exports = {
     imgExt = fType;
     fileName = fName;
 
-    //Sets bitstreamlength to size of file name string
-    let fileNameString = stringToBytes(fileName);
-    this.bitstreamLength = fileNameString.length;
+    let fileNameBytes = stringToBytes(fileName); //Converting file name to bytes
+    this.bitstreamLength = fileNameBytes.length; //Getting length of file name
 
     //Converting file extension to a number
     let imgExtNum;
-    if(imgExt == 'bmp'){
-      imgExtNum = 1;
+    switch (imgExt){
+      case 'bmp':
+        imgExtNum = 1;
+        break;
+      case 'jpeg':
+        imgExtNum = 2;
+        break;
+      case 'gif':
+        imgExtNum = 3;
+        break;
+      case 'png':
+        imgExtNum = 4;
+        break;
+      case 'tiff':
+        imgExtNum = 5;
+        break;
+      case 'raw':
+        imgExtNum = 15;
+        break;
     }
-    else if(imgExt == 'jpeg'){
-      imgExtNum = 2;
-    }
-    else if(imgExt == 'gif'){
-      imgExtNum = 3;
-    }
-    else if(imgExt == 'png'){
-      imgExtNum = 4;
-    }
-    else if(imgExt == 'tiff'){
-      imgExtNum = 5;
-    }
-    else if(imgExt == 'raw'){
-      imgExtNum = 15;
-    }
-
+    
     //Creating a buffer for the request header of the length of the header size
     this.requestHeader = new Buffer.alloc(HEADER_SIZE);
-    storeBitPacket(this.requestHeader, version, 0 , 4);                     //Version
+    storeBitPacket(this.requestHeader, version, 0 , 4);               //Version
     storeBitPacket(this.requestHeader, reqType, 24, 8);               //Request type
     storeBitPacket(this.requestHeader, timeStamp, 32, 32);            //Timestamp
     storeBitPacket(this.requestHeader, imgExtNum, 64, 4);             //File extension
     storeBitPacket(this.requestHeader, this.bitstreamLength, 68 ,28); //Bitstream length
 
     //Creating buffer for bitstream
-    this.bitstream = new Buffer.alloc(fileNameString.length);
+    this.bitstream = new Buffer.alloc(fileNameBytes.length);
 
     //Loops over length of filename string, copied filename string to bitstream
-    for(var i = 0; i < fileNameString.length; i++){
-      this.bitstream[i] = fileNameString[i];
+    for(var i = 0; i < fileNameBytes.length; i++){
+      this.bitstream[i] = fileNameBytes[i];
     }
-
   },
 
   //--------------------------

@@ -3,7 +3,7 @@ let singleton = require('./Singleton');     //Importing Singleton modules
 const fs = require('fs');                   //To read files from file system
 
 //Global variables
-var clientIDs      = {},
+var clientIDs       = {},
     clientAddress   = {}, 
     startTime       = {};
 
@@ -14,63 +14,71 @@ module.exports = {
         setClientID(sock, clientIDs);   //sets clientID
         //Logging Client names
         console.log(clientIDs[sock.id] + " connected at timestamp: " + startTime[sock.id]);
-        
+        //when clients send data
         sock.on('data', function(requestPacket){
             console.log("ITP Packet Received: ");
-            logClientPacketInfo(requestPacket, sock);
+            //Logging packet info in the terminal
+            recClientPacketInfo(requestPacket, sock);
         });
+        //when socket closed
         sock.on('close', function(){
-            console.log(clientIDs[sock.id] + 'Socket Connection closed');
+            console.log(clientIDs[sock.id] + ' Socket Connection closed');
         })
     }
 };
 //Prints client packet info to terminal window
-function logClientPacketInfo(data, sock){
+function recClientPacketInfo(data, sock){
     //Parsing bitstream received
-    let v                   = parseBitPacket(data, 0, 4);       //Version
-    let timeStamp           = parseBitPacket(data, 32, 32);     //Time Stamp
+    let v                   = parseBitPacket(data, 0, 4);       //Version    
     let reqTypeRec          = parseBitPacket(data, 24, 8);      //Request type
+    let timeStamp           = parseBitPacket(data, 32, 32);     //Time Stamp
     let fileExtRec          = parseBitPacket(data, 64, 4);      //File extension
-
-    let fileName = bytesToString(data.slice(12));               //data from packet sliced
+    let fileName            = bytesToString(data.slice(12));               //data from packet sliced
 
     //Converting request type
     let requestType;
-    if(reqTypeRec == 0){
+    switch(reqTypeRec){
+      case 0:
         requestType = 'Query';
-    }
-    else if(reqTypeRec == 1){
+        break;
+      case 1:
         requestType = 'Found';
-    }
-    else if(reqTypeRec == 2){
+        break;
+      case 2:
         requestType = 'Not Found';
-    }
-    else if(reqTypeRec == 3){
+        break;
+      case 3:
         requestType = 'Busy';
+        break;
     }
 
     //Convert file extension 
     let fileExt;
-    if (fileExtRec == 1){
-        fileExt = "BMP";
+    switch (fileExtRec){
+        case 1:
+            fileExt = "BMP";
+            break;
+        case 2:
+            fileExt = "JPEG";
+            break;
+        case 3:
+            fileExt = "GIF";
+            break;
+        case 4:
+            fileExt = "PNG";
+            break;
+        case 5:
+            fileExt = "TIFF";
+            break;
+        case 15:
+            fileExt = "RAW";
+            break;
     }
-    else if (fileExtRec == 2){
-        fileExt = "JPEG";
-    }
-    else if (fileExtRec == 3){
-        fileExt = "GIF";
-    }
-    else if (fileExtRec == 4){
-        fileExt = "PNG";
-    }
-    else if (fileExtRec == 5){
-        fileExt = "TIFF";
-    }
-    else if (fileExtRec == 15){
-        fileExt = "RAW";
-    }
-    //Logging info to console
+    
+    //Logging Packet bit info to console
     printPacketBit(data);
+
+    //Logging Request info to Console
     console.log(
         '\n' + clientIDs[sock.id] + ' requests:' +
         '\n    --ITP Version: ' + v +
@@ -80,17 +88,28 @@ function logClientPacketInfo(data, sock){
         '\n    --Image File Name: ' + fileName
     );
 
-    //Read file
+    //Getting requested file
     fs.readFile('images/' + fileName + '.' + fileExt.toLowerCase(), (err, data) => {
         const fileParts = [];
-        //No error thrown
-        if (!err){
+        //Error thrown
+        if (err){
+            //Responding to error, creating empty packet with response type 2
+            ITPpacket.init(2, singleton.getSequenceNumber(), singleton.getTimestamp(), 0, 0);
+            //Sending ITP packet to the socket
+            sock.write(ITPpacket.getPacket());
+            //Closing connection
+            sock.end();
+            //Logging error to console 
+            console.log('\n ERROR: File not found.');
+        }
+        //No Error thrown
+        else {
             //Creates readstream containing file
             var readFile = fs.createReadStream('images/' + fileName + '.' + fileExt.toLowerCase());
 
             //Putting file partitions into array
-            readFile.on('data', function (partition){
-                fileParts.push(partition);      //pushing file partitions into fileParts
+            readFile.on('data', function (parts){
+                fileParts.push(parts);      //pushing file partitions into fileParts
             });
             //Finalizing packet
             readFile.on('close', function(){
@@ -104,22 +123,11 @@ function logClientPacketInfo(data, sock){
                 sock.end();
             })
         }
-        //Error thrown
-        else {
-            //Responding to error, creating empty packet with response type 2
-            ITPpacket.init(2, singleton.getSequenceNumber(), singleton.getTimestamp(), 0, 0);
-            //Sending ITP packet to the socket
-            sock.write(ITPpacket.getPacket());
-            //Closing connection
-            sock.end();
-            //Logging error to console 
-            console.log('\n ERROR: File not found.');
-        }
     })
 }
 
 //Assigns ID to aclients
-function setClientID(sock, clientIDs){
+function setClientID(sock, clientList){
     //Creating ID for the socket
     sock.id = sock.remAddress + ":" + sock.remPort;
 
@@ -128,7 +136,7 @@ function setClientID(sock, clientIDs){
 
     //Giving the name to the client by concatonating the timestamp with the client
     var name = 'client-' + startTime[sock.id];  //Sets local variable name
-    clientIDs[sock.id] = name;                  //Stores name in the client names array
+    clientList[sock.id] = name;                  //Stores name in the client names array
     clientAddress[sock.id] = sock.remAddress;   //Stores socket address in clientAddress array
 
 }
