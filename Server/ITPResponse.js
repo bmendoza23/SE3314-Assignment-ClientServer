@@ -22,7 +22,7 @@ module.exports = {
         this.resHeader = new Buffer.alloc(HEADER_SIZE);
 
         //storeBitPacket used to put information to correct location at buffer
-        storeBitPacket(this.resHeader, v, 0, 4);                //Version                
+        storeBitPacket(this.resHeader, ver, 0, 4);                //Version                
         storeBitPacket(this.resHeader, responseType, 4, 8);     //Response type
         storeBitPacket(this.resHeader, sequenceNumber, 12, 20); //Sequence number
         storeBitPacket(this.resHeader, timeStamp, 32, 32);      //Timestamp

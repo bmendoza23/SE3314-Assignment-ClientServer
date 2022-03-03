@@ -1,7 +1,6 @@
 let ITPpacket = require('./ITPResponse');   //Importing ITPResponse modules 
 let singleton = require('./Singleton');     //Importing Singleton modules
 const fs = require('fs');                   //To read files from file system
-const { start } = require('repl');
 
 //Global variables
 var clientIDs      = {},
@@ -16,17 +15,24 @@ module.exports = {
         //Logging Client names
         console.log(clientIDs[sock.id] + " connected at timestamp: " + startTime[sock.id]);
         
+        sock.on('data', function(requestPacket){
+            console.log("ITP Packet Received: ");
+            logClientPacketInfo(requestPacket, sock);
+        });
+        sock.on('close', function(){
+            console.log(clientIDs[sock.id] + 'Socket Connection closed');
+        })
     }
 };
 //Prints client packet info to terminal window
 function logClientPacketInfo(data, sock){
     //Parsing bitstream received
     let v                   = parseBitPacket(data, 0, 4);       //Version
-    let reqTypeRec          = parseBitPacket(data, 24, 8);      //Request type
     let timeStamp           = parseBitPacket(data, 32, 32);     //Time Stamp
+    let reqTypeRec          = parseBitPacket(data, 24, 8);      //Request type
     let fileExtRec          = parseBitPacket(data, 64, 4);      //File extension
 
-    let fileName = bytesToString(data.slice(12));                   //data from packet sliced
+    let fileName = bytesToString(data.slice(12));               //data from packet sliced
 
     //Converting request type
     let requestType;
@@ -78,7 +84,7 @@ function logClientPacketInfo(data, sock){
     fs.readFile('images/' + fileName + '.' + fileExt.toLowerCase(), (err, data) => {
         const fileParts = [];
         //No error thrown
-        if (!error){
+        if (!err){
             //Creates readstream containing file
             var readFile = fs.createReadStream('images/' + fileName + '.' + fileExt.toLowerCase());
 

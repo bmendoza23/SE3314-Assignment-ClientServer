@@ -1,24 +1,81 @@
-// You may need to add some delectation here
+//Header Size Variable
+var HEADER_SIZE = 12;
+//Global variable declaration
+var version, timeStamp, imgExt, fileName;
 
 module.exports = {
-  init: function () {
-    // feel free to add function parameters as needed
-    //
-    // enter your code here
-    //
+  //Bitstream components
+  bitstreamLength: 0,   //Length of bitstream
+  bitstream: '',        //Bitstream
+  requestHeader: '',    //ITP Request header
+
+  init: function (reqType, fType, fName) {
+    version = 7;
+
+    //Setting variables
+    requestType = reqType;
+    timeStamp = 0;
+    imgExt = fType;
+    fileName = fName;
+
+    //Sets bitstreamlength to size of file name string
+    let fileNameString = stringToBytes(fileName);
+    this.bitstreamLength = fileNameString.length;
+
+    //Converting file extension to a number
+    let imgExtNum;
+    if(imgExt == 'bmp'){
+      imgExtNum = 1;
+    }
+    else if(imgExt == 'jpeg'){
+      imgExtNum = 2;
+    }
+    else if(imgExt == 'gif'){
+      imgExtNum = 3;
+    }
+    else if(imgExt == 'png'){
+      imgExtNum = 4;
+    }
+    else if(imgExt == 'tiff'){
+      imgExtNum = 5;
+    }
+    else if(imgExt == 'raw'){
+      imgExtNum = 15;
+    }
+
+    //Creating a buffer for the request header of the length of the header size
+    this.requestHeader = new Buffer.alloc(HEADER_SIZE);
+    storeBitPacket(this.requestHeader, version, 0 , 4);                     //Version
+    storeBitPacket(this.requestHeader, reqType, 24, 8);               //Request type
+    storeBitPacket(this.requestHeader, timeStamp, 32, 32);            //Timestamp
+    storeBitPacket(this.requestHeader, imgExtNum, 64, 4);             //File extension
+    storeBitPacket(this.requestHeader, this.bitstreamLength, 68 ,28); //Bitstream length
+
+    //Creating buffer for bitstream
+    this.bitstream = new Buffer.alloc(fileNameString.length);
+
+    //Loops over length of filename string, copied filename string to bitstream
+    for(var i = 0; i < fileNameString.length; i++){
+      this.bitstream[i] = fileNameString[i];
+    }
+
   },
 
   //--------------------------
   //getBytePacket: returns the entire packet in bytes
   //--------------------------
   getBytePacket: function () {
-    // enter your code here
-    return "this should be a correct packet";
+    let packet = new Buffer.alloc(this.bitstreamLength + HEADER_SIZE);
+    
+    for(let i = 0; i < HEADER_SIZE; i++){
+      packet[i] = this.requestHeader[i];
+    }
+    for(let j = 0; j < this.bitstreamLength; j++){
+      packet[j + HEADER_SIZE] = this.bitstream[j];
+    } 
+    return packet;
   },
 };
-
-//// Some usefull methods ////
-// Feel free to use them, but DON NOT change or add any code in these methods.
 
 // Convert a given string to byte array
 function stringToBytes(str) {
