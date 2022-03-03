@@ -22,6 +22,9 @@ let ver  = Number(process.argv[7]);         //Takes version number at 7th argume
 //Request type is query
 let reqType = 0;
 
+//Variable for response packet
+let resPkt;
+
 //Initializing ITP packet with the frequest and file info
 ITPrequest.init(ver, reqType, fType, fName);
 
@@ -39,26 +42,24 @@ client.connect(port, host, function(){
 })
 
 /*
-  Handling receiving information from server
+  Handling receiving data response from server
 */
-const fileParts = []; //Constant array for file partitions
-//Pushing partitions of bitstream received into fileParts array
-client.on('data', part => 
-  fileParts.push(part)
-);
+
+client.on('data', (packet) =>{
+  resPkt = packet;
+})
 
 //End
 client.on('end', () =>{
   //Concatonating partitions into the response packet
-  const responsePacket = Buffer.concat(fileParts);
-  let header  = responsePacket.slice(0,12); //Taking header out of the response
-  let file    = responsePacket.slice(12);   //Parsing file info from bit data past 12th byte
+  let header  = resPkt.slice(0,12); //Taking header out of the response
+  let file    = resPkt.slice(12);   //Parsing file info from bit data past 12th byte
 
   //Parsing response packet into version, response type, sequence number, timestamp
-  let version         = parseBitPacket(responsePacket, 0, 4);
-  let responseTypeNum = parseBitPacket(responsePacket, 4, 8);
-  let sequenceNumber  = parseBitPacket(responsePacket, 12, 20);
-  let timeStamp       = parseBitPacket(responsePacket, 32, 32);
+  let version         = parseBitPacket(resPkt, 0, 4);
+  let responseTypeNum = parseBitPacket(resPkt, 4, 8);
+  let sequenceNumber  = parseBitPacket(resPkt, 12, 20);
+  let timeStamp       = parseBitPacket(resPkt, 32, 32);
 
   //Converting response type number to a string
   let responseType;

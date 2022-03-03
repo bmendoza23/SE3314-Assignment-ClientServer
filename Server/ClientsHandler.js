@@ -90,8 +90,8 @@ function recClientPacketInfo(data, sock){
 
     //Getting requested file
     fs.readFile('images/' + fileName + '.' + fileExt.toLowerCase(), (err, data) => {
-        //Array for file partition
-        const fileParts = [];
+        //Variable for file request
+        let fileReq;
         //Error thrown
         if (err){
             //Responding to error, creating empty packet with response type 2 (not found)
@@ -109,15 +109,13 @@ function recClientPacketInfo(data, sock){
             var readFile = fs.createReadStream('images/' + fileName + '.' + fileExt.toLowerCase());
 
             //Putting file partitions into array
-            readFile.on('data', function (parts){
-                fileParts.push(parts); //pushing file partitions into fileParts
+            readFile.on('data', function (packet){
+                fileReq = packet; //pushing file partitions into fileReq
             });
             //Finalizing packet
-            readFile.on('close', function(){
-                //concatonating fileParts into a single variable
-                let file = Buffer.concat(fileParts);
+            readFile.on('close', function(){ 
                 //creating a packet with seq number, timestamp, and file info
-                ITPpacket.init(1, singleton.getSequenceNumber(), singleton.getTimestamp(), file, file.length);
+                ITPpacket.init(1, singleton.getSequenceNumber(), singleton.getTimestamp(), fileReq, fileReq.length);
                 //Sending packet through socket
                 sock.write(ITPpacket.getPacket());
                 //Closing connection
