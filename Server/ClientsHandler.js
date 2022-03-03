@@ -80,12 +80,12 @@ function recClientPacketInfo(data, sock){
 
     //Logging Request info to Console
     console.log(
-        '\n' + clientIDs[sock.id] + ' requests:' +
-        '\n    --ITP Version: ' + v +
-        '\n    --Timestamp: ' + timeStamp +
-        '\n    --Request Type: ' + requestType +
-        '\n    --Image File Extension(s) ' + fileExt +
-        '\n    --Image File Name: ' + fileName
+        `${clientIDs[sock.id]} requests:
+            --ITP Version:            = ${v}
+            --Timestamp:              = ${timeStamp}
+            --Request Type:           = ${requestType} 
+            --Image File Extension(s) = ${fileExt}
+            --Image File Name:        = ${fileName}`
     );
 
     //Getting requested file

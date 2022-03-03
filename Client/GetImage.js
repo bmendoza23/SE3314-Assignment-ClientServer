@@ -95,11 +95,11 @@ client.on('end', () =>{
 
     //Logging response info
     console.log(
-      'Server sent: ' + 
-      '\n     --ITP version = '     + version +
-      '\n    --Response Type = '    + responseType +
-      '\n     --Sequence number = ' + sequenceNumber +
-      '\n     --Timestamp = '       + timeStamp 
+      `Server sent: 
+            --ITP version     = ${version} 
+            --Response Type   = ${responseType}
+            --Sequence number = ${sequenceNumber}
+            --Timestamp       = ${timeStamp}`
     )
     client.end();
 });
